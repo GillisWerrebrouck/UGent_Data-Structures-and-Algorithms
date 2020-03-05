@@ -32,59 +32,14 @@ class Lijst: private Lijstknoopptr<T>{
 public:
     using std::unique_ptr<Lijstknoop<T>>::operator=;
     using std::unique_ptr<Lijstknoop<T>>::swap;
-    
-    Lijst() {}
-    ~Lijst() {}
-    
-    // Move constructor
-    Lijst(Lijst<T>&& l) {
-//        std::cout << "[move constructor]" << endl;
-        std::unique_ptr<Lijstknoop<T>>::operator=(std::move(l));
-	};
-    
-    // Move assignment
-    const Lijst& operator=(Lijst<T>&& l) {
-//        std::cout << "[move assignment]" << endl;
-        std::unique_ptr<Lijstknoop<T>>::operator=(std::move(l));
-        
-        return *this;
-    }
-	
-	// Copy Constructor
-    Lijst(const Lijst<T>& l) {
-//        std::cout << "[copy constructor]" << endl;
-        
-        this->reset();
-        
-        if (l) {
-            Lijstknoop<T> * node = new Lijstknoop<T>(l.get()->sleutel);
-            *this = std::unique_ptr<Lijstknoop<T>>(node);
-        }
-        
-        this->get()->volgend = l.get()->volgend;
-    };
-    
-    // Copy Assignment
-    Lijst& operator=(const Lijst<T>& l) {
-//        std::cout << "[copy assignment]" << endl;
 
-		// self assignment check
-        if (this == &l) {
-            return *this;
-        }
-        
-        this->reset();
-        
-        if (l) {
-            Lijstknoop<T> * node = new Lijstknoop<T>(l.get()->sleutel);
-            *this = std::unique_ptr<Lijstknoop<T>>(node);
-        }
-        
-        this->get()->volgend = l.get()->volgend;
-        
-        return *this;
-    };
-    
+    Lijst() = default;
+    virtual ~Lijst() = default;
+    Lijst(const Lijst& l);
+    Lijst(Lijst&& l);
+    Lijst& operator=(const Lijst& l);
+    Lijst& operator=(Lijst&& l);
+
     //operaties
 
     //duplicaten zijn toegelaten.
@@ -133,6 +88,7 @@ public:
             iterator(Lijstknoop<T>* l=0);
             const T& operator*() const;
             const iterator& operator++();
+            bool operator==(const iterator& i);
             bool operator!=(const iterator& i);
     };
     iterator begin() const;
@@ -156,8 +112,13 @@ const typename Lijst<T>::iterator& Lijst<T>::iterator::operator++() {
 }
 
 template<class T>
+bool Lijst<T>::iterator::operator==(const iterator& i) {
+    return i.l == l;
+}
+
+template<class T>
 bool Lijst<T>::iterator::operator!=(const iterator& i) {
-    return i.l != l;
+    return !(*this == i);
 }
 
 template<class T>
@@ -195,6 +156,61 @@ template<class T>
 int Lijstknoop<T>::aantalGemaakt=0;
 template<class T>
 int Lijstknoop<T>::aantalVerwijderd=0;
+
+// Move constructor
+template <class T>
+Lijst<T>::Lijst(Lijst&& l) : std::unique_ptr<Lijstknoop<T>>{std::move(l)} {
+    // OR
+    // std::unique_ptr<Lijstknoop<T>>::operator=(std::move(l));
+}
+
+// Move assignment
+template <class T>
+Lijst<T>& Lijst<T>::operator=(Lijst&& l) {
+    // this.swap(l);
+    // OR
+    // this->reset(l.release());
+    // OR
+    std::unique_ptr<Lijstknoop<T>>::operator=(std::move(l));
+
+    return *this;
+}
+
+// Copy constructor
+template <class T>
+Lijst<T>::Lijst(const Lijst& l)
+{
+	// self assignment check
+    if (this == &l) {
+        return;
+    }
+
+    this->reset();
+
+    const Lijst* it_l = &l;
+    Lijst* it_this = this;
+
+    while (it_l && *it_l)
+    {
+        *it_this = std::make_unique<Lijstknoop<T>>((*it_l)->sleutel);
+
+        it_l = &((*it_l)->volgend);
+        it_this = &((*it_this)->volgend);
+    }
+}
+
+// Copy assignment
+template <class T>
+Lijst<T>& Lijst<T>::operator=(const Lijst& l)
+{
+	// self assignment check
+    if (this != &l) {
+        Lijst temp{l};
+        swap(temp);
+    }
+
+    return (*this);
+}
 
 template<class T>
 Lijstknoop<T>::Lijstknoop(const T& _sl):sleutel(_sl){
